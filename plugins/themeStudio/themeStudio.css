@@ -1,0 +1,199 @@
+.vc-themeStudio-host {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    pointer-events: none;
+}
+
+.vc-themeStudio-highlight {
+    display: none;
+    position: fixed;
+    box-sizing: border-box;
+    border: 2px solid var(--brand-500, #5865f2);
+    outline: 1px solid white;
+    pointer-events: none;
+}
+
+.vc-themeStudio-panel {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 320px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 1px solid #444 !important;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgb(0 0 0 / 40%);
+    pointer-events: auto;
+}
+
+.vc-themeStudio-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 1px solid #444 !important;
+    border-radius: 10px;
+}
+
+.vc-themeStudio-panel,
+.vc-themeStudio-panel *,
+.vc-themeStudio-page,
+.vc-themeStudio-page * {
+    color: #fff !important;
+}
+
+.vc-themeStudio-header,
+.vc-themeStudio-pageHeader,
+.vc-themeStudio-control,
+.vc-themeStudio-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.vc-themeStudio-header {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.vc-themeStudio-pageToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.vc-themeStudio-pageToolbar p {
+    margin: 0;
+}
+
+.vc-themeStudio-pageHeader {
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+}
+
+.vc-themeStudio-title {
+    color: var(--header-primary);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.vc-themeStudio-subtitle,
+.vc-themeStudio-status,
+.vc-themeStudio-selected small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.vc-themeStudio-close {
+    width: 28px;
+    height: 28px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 22px;
+}
+
+.vc-themeStudio-close:hover,
+.vc-themeStudio-savedRule:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vc-themeStudio-status {
+    min-height: 16px;
+}
+
+.vc-themeStudio-selected {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-wrap: anywhere;
+    padding: 8px;
+    background: #111 !important;
+    border-radius: 6px;
+}
+
+.vc-themeStudio-controlColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vc-themeStudio-check {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.vc-themeStudio-check span:last-child {
+    margin-left: auto;
+}
+
+.vc-themeStudio-panel input[type="range"],
+.vc-themeStudio-page input[type="range"] {
+    width: 100%;
+    accent-color: var(--brand-500, #5865f2);
+}
+
+.vc-themeStudio-panel select,
+.vc-themeStudio-page select {
+    width: 100%;
+    padding: 7px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 1px solid #444 !important;
+    border-radius: 5px;
+}
+
+.vc-themeStudio-panel option,
+.vc-themeStudio-page option {
+    color: #fff !important;
+    background: #000 !important;
+}
+
+.vc-themeStudio-actions {
+    flex-wrap: wrap;
+}
+
+.vc-themeStudio-savedRules {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 10px;
+}
+
+.vc-themeStudio-savedRule {
+    overflow: hidden;
+    padding: 6px 8px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-themeStudio-savedRule-selected {
+    background: #222 !important;
+}
