@@ -65,6 +65,27 @@
     gap: 10px;
 }
 
+.vc-themeStudio-colorControl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vc-themeStudio-colorControl input[type="color"] {
+    width: 44px;
+    height: 30px;
+    padding: 2px;
+    background: #000;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.vc-themeStudio-colorControl code {
+    color: #fff !important;
+    font-size: 12px;
+}
+
 .vc-themeStudio-header {
     cursor: grab;
     touch-action: none;

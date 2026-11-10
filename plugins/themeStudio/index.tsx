@@ -16,7 +16,7 @@ import SettingsPlugin from "@plugins/_core/settings";
 import { classNameFactory, createAndAppendStyle } from "@utils/css";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
-import { ColorPicker, createRoot, React, useEffect, useState } from "@webpack/common";
+import { createRoot, React, useEffect, useState } from "@webpack/common";
 
 interface ThemeRule {
     selector: string;
@@ -113,7 +113,9 @@ function ruleCss(rule: ThemeRule): string {
 }
 
 function updateThemeStyle(rules = getRules(), preview?: ThemeRule) {
-    if (!themeStyle?.isConnected)
+    // Vencord can start plugins before its hidden style root is attached to the document.
+    // Populate the stylesheet while detached so saved rules are ready when the root connects.
+    if (!themeStyle)
         return;
 
     const combined = preview
@@ -393,11 +395,10 @@ function ThemeEditor({ onClose, fullPage = false }: ThemeEditorProps) {
                     <input type="checkbox" checked={draft.textColorEnabled} onChange={event => updateDraft({ textColorEnabled: event.target.checked })} />
                     Text color
                 </label>
-                <ColorPicker
-                    color={parseInt(draft.textColor.slice(1), 16)}
-                    onChange={(color: number) => updateDraft({ textColor: "#" + color.toString(16).padStart(6, "0") })}
-                    showEyeDropper={false}
-                />
+                <div className={cl("colorControl")}>
+                    <input type="color" aria-label="Choose text color" value={validColor(draft.textColor) ?? "#ffffff"} onChange={event => updateDraft({ textColor: event.target.value })} />
+                    <code>{draft.textColor}</code>
+                </div>
             </div>
 
             <div className={cl("control")}>
@@ -405,11 +406,10 @@ function ThemeEditor({ onClose, fullPage = false }: ThemeEditorProps) {
                     <input type="checkbox" checked={draft.backgroundEnabled} onChange={event => updateDraft({ backgroundEnabled: event.target.checked })} />
                     Background
                 </label>
-                <ColorPicker
-                    color={parseInt(draft.backgroundColor.slice(1), 16)}
-                    onChange={(color: number) => updateDraft({ backgroundColor: "#" + color.toString(16).padStart(6, "0") })}
-                    showEyeDropper={false}
-                />
+                <div className={cl("colorControl")}>
+                    <input type="color" aria-label="Choose background color" value={validColor(draft.backgroundColor) ?? "#313338"} onChange={event => updateDraft({ backgroundColor: event.target.value })} />
+                    <code>{draft.backgroundColor}</code>
+                </div>
             </div>
 
             <div className={cl("controlColumn")}>
