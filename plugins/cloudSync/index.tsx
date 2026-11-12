@@ -28,11 +28,6 @@ interface Meta {
 }
 
 const settings = definePluginSettings({
-    syncKey: {
-        type: OptionType.STRING,
-        description: "Sync key (ask whoever runs the sync server). The same key works for everyone in your group.",
-        default: ""
-    },
     autoSync: {
         type: OptionType.BOOLEAN,
         description: "Sync automatically on start, after changes, and every 5 minutes",
@@ -58,7 +53,7 @@ function setStatus(next: string) {
 }
 
 async function api(method: "GET" | "PUT" | "DELETE", path: string, body?: unknown) {
-    const response = await Native.request(method, path, settings.store.syncKey.trim(), body === undefined ? undefined : JSON.stringify(body));
+    const response = await Native.request(method, path, body === undefined ? undefined : JSON.stringify(body));
     const parsed = response.body ? JSON.parse(response.body) : {};
     if (response.status >= 400)
         throw new Error(parsed?.error ?? `Server answered ${response.status}`);
@@ -159,8 +154,6 @@ async function runSync(direction: "both" | "upload" | "download" = "both") {
     const userId = UserStore.getCurrentUser()?.id;
     if (!userId)
         return setStatus("Waiting for Discord to log in...");
-    if (!settings.store.syncKey.trim())
-        return setStatus("Enter the sync key above to start syncing.");
 
     setStatus("Syncing...");
     const remote = await api("GET", `/v1/${userId}`);
