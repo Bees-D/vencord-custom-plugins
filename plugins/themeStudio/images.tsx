@@ -11,7 +11,7 @@ import { Button } from "@components/Button";
 import { ImageIcon } from "@components/Icons";
 import { classNameFactory } from "@utils/css";
 import type { Guild, User } from "@vencord/discord-types";
-import { Menu, PopoutWindowStore, React, useEffect, useState } from "@webpack/common";
+import { GuildStore, Menu, PopoutWindowStore, React, useEffect, useState } from "@webpack/common";
 
 export type ImageKind = "avatar" | "guild" | "src" | "selector";
 
@@ -85,7 +85,8 @@ function imageCss(rule: ImageRule, data: string): string {
             // Servers without an icon show their initials instead of an image.
             return `img[src*="/icons/${id}/"] { ${replaceImg} }\n`
                 + `[style*="/icons/${id}/"] { ${replaceBg} }\n`
-                + `[data-list-item-id="guildsnav___${id}"] [class*="childWrapper_"] { ${replaceBg} color: transparent !important; }`;
+                + `[data-list-item-id="guildsnav___${id}"] [class*="childWrapper_"], [data-vc-guild-id="${id}"] { ${replaceBg} color: transparent !important; }\n`
+                + `[data-vc-guild-id="${id}"] [class*="acronym_"] { color: transparent !important; }`;
         }
         case "src":
             return `img[src*="${rule.target}"] { ${replaceImg} }\n[style*="${rule.target}"] { ${replaceBg} }`;
@@ -247,6 +248,15 @@ export function imageTargetForElement(element: Element | undefined, fallbackSele
     if (!element)
         return fallbackSelector ? { kind: "selector", target: fallbackSelector, label } : undefined;
 
+    // Servers without an icon render shared "acronym" classes, so a class selector would hit every icon-less server.
+    const taggedId = (element.closest("[data-vc-guild-id]") ?? element.querySelector("[data-vc-guild-id]"))?.getAttribute("data-vc-guild-id");
+    const guildItem = element.closest('[data-list-item-id^="guildsnav___"]')?.getAttribute("data-list-item-id");
+    const guildId = (taggedId && /^\d{5,25}$/.test(taggedId) ? taggedId : undefined) ?? (guildItem && /^guildsnav___(\d{5,25})$/.exec(guildItem)?.[1]);
+    if (guildId) {
+        const name = GuildStore.getGuild(guildId)?.name;
+        return { kind: "guild", target: guildId, label: "Server: " + (name || guildId) };
+    }
+
     const img = element instanceof HTMLImageElement ? element : element.querySelector("img") ?? element.closest("img");
     if (img?.src) {
         const target = targetFromUrl(img.currentSrc || img.src, label);
@@ -311,6 +321,11 @@ export function ImagesSection({ element, selector, label, onStatus }: {
             <Button size="small" onClick={upload} disabled={!target || busy}>
                 {busy ? "Loading..." : target ? `Upload new image for ${target.kind === "avatar" ? "this avatar" : target.kind === "guild" ? "this server icon" : "this part"}` : "Pick a part to replace its image"}
             </Button>
+            {target?.kind === "selector" && (() => {
+                let count = 0;
+                try { count = document.querySelectorAll(target.target).length; } catch { }
+                return count > 1 && <div className={cl("warning")}>This part's style is shared, so the image will replace all {count} matching parts.</div>;
+            })()}
             {rules.map(rule => {
                 const data = imageData.get(rule.key);
                 return (

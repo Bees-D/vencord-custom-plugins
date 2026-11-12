@@ -1,0 +1,8 @@
+name = "vencord-cloud-sync"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vencord-cloud-sync"
+database_id = "12f9c3e2-a476-4f9a-b04e-eeea5078f54c"

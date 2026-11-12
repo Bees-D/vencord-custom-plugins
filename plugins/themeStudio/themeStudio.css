@@ -525,3 +525,24 @@ html.vc-themeStudio-picking * {
     cursor: pointer;
     text-decoration: underline;
 }
+
+.vc-themeStudio-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-themeStudio-preset {
+    padding: 4px 10px;
+    color: #fff !important;
+    background: #1a1a1a !important;
+    border: 1px solid #3a3a3a;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.vc-themeStudio-preset:hover {
+    border-color: var(--brand-500, #5865f2);
+    box-shadow: 0 0 8px rgb(88 101 242 / 50%);
+}

@@ -94,6 +94,7 @@ sealed partial class Engine
         Begin("Adding the plugins to Vencord");
         var plugins = CopyPlugins(state);
         PatchPluginModal();
+        PatchThemesTab();
 
         Begin("Installing Vencord's dependencies");
         await ProcessRunner.RunCheckedAsync(Tools.Node, [Tools.Corepack, "pnpm", "install", "--frozen-lockfile"], Paths.VencordSource, token, "Installing dependencies failed");
@@ -242,6 +243,37 @@ sealed partial class Engine
     }
 
     // Lets the custom user plugins be favorited from their Vencord plugin details, like built-in plugins.
+    // Lets plugins add their own tabs (for example "Background") next to Local Themes / Online Themes.
+    static void PatchThemesTab()
+    {
+        var path = Path.Combine(Paths.VencordSource, "src", "components", "settings", "tabs", "themes", "index.tsx");
+        if (!File.Exists(path))
+        {
+            Log.Warn("Vencord's Themes tab file moved; plugins will use their own settings pages instead.");
+            return;
+        }
+
+        var source = File.ReadAllText(path);
+        if (source.Contains("VcExtraThemeTabs"))
+            return;
+
+        const string tabs = "(window as any).VcExtraThemeTabs";
+        var updated = Regex.Replace(source, @"(Online Themes\s*</TabBar\.Item>)",
+            "$1\n                {" + tabs + "?.map((tab: any) => <TabBar.Item className=\"vc-settings-tab-bar-item\" id={tab.id} key={tab.id}>{tab.title}</TabBar.Item>)}");
+        updated = Regex.Replace(updated, @"(\{currentTab === ThemeTab\.ONLINE && <OnlineThemesTab />\})",
+            "$1\n                {" + tabs + "?.filter((tab: any) => tab.id === currentTab).map((tab: any) => <tab.Component key={tab.id} />)}");
+        updated = Regex.Replace(updated, @"(\nconst enum ThemeTab)", "\n(window as any).VcExtraThemeTabsReady = true;\n$1");
+
+        if (Regex.Matches(updated, "VcExtraThemeTabs").Count != 3)
+        {
+            Log.Warn("Vencord changed its Themes tab layout; plugins will use their own settings pages instead.");
+            return;
+        }
+
+        File.WriteAllText(path, updated);
+        Log.Info("Added plugin tabs to Vencord's Themes page.");
+    }
+
     static void PatchPluginModal()
     {
         var modalPath = Path.Combine(Paths.VencordSource, "src", "components", "settings", "tabs", "plugins", "PluginModal.tsx");

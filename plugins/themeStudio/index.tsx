@@ -38,6 +38,18 @@ interface ThemeRule {
     fontSizeEnabled: boolean;
     borderRadius: number;
     borderRadiusEnabled: boolean;
+    glowEnabled: boolean;
+    textGlowEnabled: boolean;
+    glowColor: string;
+    glowSize: number;
+    gradientEnabled: boolean;
+    gradientColor: string;
+    gradientAngle: number;
+    borderEnabled: boolean;
+    borderColor: string;
+    borderWidth: number;
+    blurEnabled: boolean;
+    blurAmount: number;
     hidden: boolean;
 }
 
@@ -84,6 +96,44 @@ const fontWeights = [
 
 const swatches = ["#ffffff", "#000000", "#f23f43", "#f0b232", "#23a55a", "#00a8fc", "#5865f2", "#eb459e", "#313338", "#1e1f22"];
 
+const stylePresets: { name: string; description: string; apply(draft: DraftRule): DraftRule; }[] = [
+    {
+        name: "Neon glow",
+        description: "Purple glow behind the part and glowing text",
+        apply: d => ({ ...d, glowEnabled: true, textGlowEnabled: true, glowColor: "#a855f7", glowSize: 18, borderEnabled: true, borderColor: "#c084fc", borderWidth: 1, borderRadiusEnabled: true, borderRadius: 10 })
+    },
+    {
+        name: "Glass",
+        description: "Frosted see-through panel",
+        apply: d => ({ ...d, backgroundEnabled: true, backgroundColor: "#ffffff14", blurEnabled: true, blurAmount: 14, borderEnabled: true, borderColor: "#ffffff26", borderWidth: 1, borderRadiusEnabled: true, borderRadius: 12, gradientEnabled: false })
+    },
+    {
+        name: "Soft card",
+        description: "Rounded dark card with a gentle shadow glow",
+        apply: d => ({ ...d, backgroundEnabled: true, backgroundColor: "#1e1f22", borderRadiusEnabled: true, borderRadius: 14, glowEnabled: true, glowColor: "#00000099", glowSize: 24, gradientEnabled: false })
+    },
+    {
+        name: "Galaxy",
+        description: "Purple to blue gradient with a blue glow",
+        apply: d => ({ ...d, backgroundEnabled: true, backgroundColor: "#4c1d95", gradientEnabled: true, gradientColor: "#1e3a8a", gradientAngle: 135, glowEnabled: true, glowColor: "#3b82f6", glowSize: 14, borderRadiusEnabled: true, borderRadius: 12, textColorEnabled: true, textColor: "#e0e7ff" })
+    },
+    {
+        name: "Sunset",
+        description: "Pink to orange gradient",
+        apply: d => ({ ...d, backgroundEnabled: true, backgroundColor: "#db2777", gradientEnabled: true, gradientColor: "#f59e0b", gradientAngle: 120, borderRadiusEnabled: true, borderRadius: 12, textColorEnabled: true, textColor: "#ffffff" })
+    },
+    {
+        name: "Outline",
+        description: "Transparent with a bright border",
+        apply: d => ({ ...d, backgroundEnabled: false, gradientEnabled: false, borderEnabled: true, borderColor: "#5865f2", borderWidth: 2, borderRadiusEnabled: true, borderRadius: 8 })
+    },
+    {
+        name: "Clear",
+        description: "Turn every option off",
+        apply: () => ({ ...defaultDraft })
+    }
+];
+
 const defaultDraft: DraftRule = {
     textColor: "#ffffff",
     textColorEnabled: false,
@@ -98,6 +148,18 @@ const defaultDraft: DraftRule = {
     fontSizeEnabled: false,
     borderRadius: 8,
     borderRadiusEnabled: false,
+    glowEnabled: false,
+    textGlowEnabled: false,
+    glowColor: "#8b5cf6",
+    glowSize: 16,
+    gradientEnabled: false,
+    gradientColor: "#3b82f6",
+    gradientAngle: 135,
+    borderEnabled: false,
+    borderColor: "#5865f2",
+    borderWidth: 2,
+    blurEnabled: false,
+    blurAmount: 10,
     hidden: false
 };
 
@@ -200,6 +262,18 @@ function normalizeRule(raw: any): ThemeRule | undefined {
         fontSizeEnabled: Boolean(raw.fontSizeEnabled),
         borderRadius: clamp(num(raw.borderRadius, 8), 0, 50),
         borderRadiusEnabled: Boolean(raw.borderRadiusEnabled),
+        glowEnabled: Boolean(raw.glowEnabled),
+        textGlowEnabled: Boolean(raw.textGlowEnabled),
+        glowColor: validColor(raw.glowColor) ?? defaultDraft.glowColor,
+        glowSize: clamp(num(raw.glowSize, 16), 0, 80),
+        gradientEnabled: Boolean(raw.gradientEnabled),
+        gradientColor: validColor(raw.gradientColor) ?? defaultDraft.gradientColor,
+        gradientAngle: clamp(num(raw.gradientAngle, 135), 0, 360),
+        borderEnabled: Boolean(raw.borderEnabled),
+        borderColor: validColor(raw.borderColor) ?? defaultDraft.borderColor,
+        borderWidth: clamp(num(raw.borderWidth, 2), 1, 10),
+        blurEnabled: Boolean(raw.blurEnabled),
+        blurAmount: clamp(num(raw.blurAmount, 10), 0, 40),
         hidden: Boolean(raw.hidden)
     };
 }
@@ -220,7 +294,8 @@ function toDraft(rule: ThemeRule): DraftRule {
 
 function hasEffect(draft: DraftRule) {
     return draft.textColorEnabled || draft.backgroundEnabled || draft.opacityEnabled || Boolean(draft.fontFamily)
-        || Boolean(draft.fontWeight) || draft.fontSizeEnabled || draft.borderRadiusEnabled || draft.hidden;
+        || Boolean(draft.fontWeight) || draft.fontSizeEnabled || draft.borderRadiusEnabled || draft.hidden
+        || draft.glowEnabled || draft.textGlowEnabled || draft.gradientEnabled || draft.borderEnabled || draft.blurEnabled;
 }
 
 function ruleCss(rule: ThemeRule): string {
@@ -237,8 +312,29 @@ function ruleCss(rule: ThemeRule): string {
         if (rule.affectChildren)
             children.push("color: " + textColor);
     }
-    if (rule.backgroundEnabled && backgroundColor)
+    const gradientColor = validColor(rule.gradientColor);
+    if (rule.gradientEnabled && gradientColor)
+        own.push(`background: linear-gradient(${clamp(rule.gradientAngle, 0, 360)}deg, ${rule.backgroundEnabled && backgroundColor ? backgroundColor : "transparent"}, ${gradientColor})`);
+    else if (rule.backgroundEnabled && backgroundColor)
         own.push("background: " + backgroundColor);
+
+    const glowColor = validColor(rule.glowColor);
+    if (rule.glowEnabled && glowColor) {
+        const size = clamp(rule.glowSize, 0, 80);
+        own.push(`box-shadow: 0 0 ${size}px ${glowColor}, 0 0 ${Math.round(size / 2.5)}px ${glowColor}`);
+    }
+    if (rule.textGlowEnabled && glowColor) {
+        const shadow = `text-shadow: 0 0 ${Math.max(4, Math.round(clamp(rule.glowSize, 0, 80) / 2))}px ${glowColor}`;
+        own.push(shadow);
+        if (rule.affectChildren)
+            children.push(shadow);
+    }
+
+    const borderColor = validColor(rule.borderColor);
+    if (rule.borderEnabled && borderColor)
+        own.push(`border: ${clamp(rule.borderWidth, 1, 10)}px solid ${borderColor}`);
+    if (rule.blurEnabled)
+        own.push(`backdrop-filter: blur(${clamp(rule.blurAmount, 0, 40)}px)`);
     if (rule.opacityEnabled)
         own.push("opacity: " + clamp(rule.opacity, 0, 100) / 100);
     if (font) {
@@ -997,6 +1093,14 @@ function ThemeEditor({ onClose, fullPage = false }: ThemeEditorProps) {
 
             {!selection && <div className={cl("hint")}>Options unlock after you pick a part or select a saved one.</div>}
             <fieldset className={cl("fields")} disabled={!selection}>
+                <div className={cl("presets")}>
+                    {stylePresets.map(preset => (
+                        <button key={preset.name} className={cl("preset")} title={preset.description} onClick={() => setDraft(current => preset.apply(current))}>
+                            {preset.name}
+                        </button>
+                    ))}
+                </div>
+
                 <ColorField
                     label="Text color"
                     enabled={draft.textColorEnabled}
@@ -1062,6 +1166,61 @@ function ThemeEditor({ onClose, fullPage = false }: ThemeEditorProps) {
                         Rounded corners <span>{draft.borderRadius}px</span>
                     </label>
                     <input type="range" min="0" max="50" value={draft.borderRadius} onChange={event => updateDraft({ borderRadius: Number(event.target.value), borderRadiusEnabled: true })} />
+                </div>
+
+                <ColorField
+                    label="Back glow"
+                    enabled={draft.glowEnabled}
+                    value={draft.glowColor}
+                    onToggle={glowEnabled => updateDraft({ glowEnabled })}
+                    onChange={glowColor => updateDraft({ glowColor })}
+                />
+                <label className={cl("check", "subOption")}>
+                    <input type="checkbox" checked={draft.textGlowEnabled} onChange={event => updateDraft({ textGlowEnabled: event.target.checked })} />
+                    Also make the text glow
+                </label>
+                {(draft.glowEnabled || draft.textGlowEnabled) && (
+                    <div className={cl("controlColumn")}>
+                        <span className={cl("check")}>Glow size <span>{draft.glowSize}px</span></span>
+                        <input type="range" min="0" max="80" value={draft.glowSize} onChange={event => updateDraft({ glowSize: Number(event.target.value) })} />
+                    </div>
+                )}
+
+                <ColorField
+                    label="Gradient to"
+                    enabled={draft.gradientEnabled}
+                    value={draft.gradientColor}
+                    onToggle={gradientEnabled => updateDraft({ gradientEnabled })}
+                    onChange={gradientColor => updateDraft({ gradientColor })}
+                />
+                {draft.gradientEnabled && (
+                    <div className={cl("controlColumn")}>
+                        <span className={cl("check")}>Gradient angle <span>{draft.gradientAngle}°</span></span>
+                        <input type="range" min="0" max="360" value={draft.gradientAngle} onChange={event => updateDraft({ gradientAngle: Number(event.target.value) })} />
+                        <span className={cl("hint")}>Starts from the Background color (or transparent when Background is off).</span>
+                    </div>
+                )}
+
+                <ColorField
+                    label="Border"
+                    enabled={draft.borderEnabled}
+                    value={draft.borderColor}
+                    onToggle={borderEnabled => updateDraft({ borderEnabled })}
+                    onChange={borderColor => updateDraft({ borderColor })}
+                />
+                {draft.borderEnabled && (
+                    <div className={cl("controlColumn")}>
+                        <span className={cl("check")}>Border width <span>{draft.borderWidth}px</span></span>
+                        <input type="range" min="1" max="10" value={draft.borderWidth} onChange={event => updateDraft({ borderWidth: Number(event.target.value) })} />
+                    </div>
+                )}
+
+                <div className={cl("controlColumn")}>
+                    <label className={cl("check")}>
+                        <input type="checkbox" checked={draft.blurEnabled} onChange={event => updateDraft({ blurEnabled: event.target.checked })} />
+                        Blur what is behind (glass) <span>{draft.blurAmount}px</span>
+                    </label>
+                    <input type="range" min="0" max="40" value={draft.blurAmount} onChange={event => updateDraft({ blurAmount: Number(event.target.value), blurEnabled: true })} />
                 </div>
 
                 <label className={cl("check")}>
@@ -1138,6 +1297,24 @@ export default definePlugin({
     toolboxActions: {
         "Open Theme Studio (Alt+F1)": toggleEditor
     },
+
+    // Tag every server icon with its server ID, so icon-less servers (which share one "acronym" class) can get their own image.
+    patches: [
+        {
+            find: "renderAcronym(){",
+            replacement: {
+                match: /\[\i\.noIcon\]:null==(\i)\.icon\}\),/,
+                replace: '$&"data-vc-guild-id":$1.id,'
+            }
+        },
+        {
+            find: "acronymClassName:",
+            replacement: {
+                match: /guildId:(\i),.{0,500}?role:"img",/,
+                replace: '$&"data-vc-guild-id":$1,'
+            }
+        }
+    ],
 
     contextMenus: {
         "user-context": UserContextPatch,
