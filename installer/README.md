@@ -1,12 +1,12 @@
 # Windows installer
 
-`CustomVencordInstaller.exe` is a single-file app (no .NET install needed). It asks for administrator rights when it starts.
+`CustomVencordInstaller.exe` is a single-file app for Windows 10 and 11 (no .NET install needed). It runs as your normal user; no administrator rights are needed.
 
 ## What it does
 
 When you press **Download, build and install**:
 
-1. Checks for Git, Node.js 22 or newer, and Corepack/pnpm. Missing tools are installed with WinGet.
+1. Checks for Git, Node.js 22 or newer, and Corepack/pnpm. If Node.js or Git is missing or too old, it downloads private portable copies into `%LOCALAPPDATA%VencordCustomPlugins	ools` (checked against the publishers' SHA-256 checksums), so nothing needs to be installed beforehand.
 2. Downloads the newest Vencord source and the plugins from this repository. Later runs only download what changed.
 3. Adds every plugin in `plugins/` to Vencord and builds it on your PC.
 4. Copies the build to `%LOCALAPPDATA%\VencordCustomPlugins\dist`.

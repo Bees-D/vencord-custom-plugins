@@ -27,6 +27,12 @@ static class Program
             if (Directory.Exists(dir))
                 AddDllDirectory(dir);
 
+        // .NET's own interop (for example winhttp.dll used by HttpClient) probes the exe's folder first,
+        // so any DLL that ships with Windows is forced to load from System32.
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) => ProtectNativeImports(e.LoadedAssembly);
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            ProtectNativeImports(assembly);
+
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Crash: " + e.ExceptionObject);
         try
         {
@@ -42,6 +48,30 @@ static class Program
                     : "The installer could not start.\n\n")
                 + error.Message + "\n\nDetails were saved to:\n" + Paths.LogFile,
                 "Custom Vencord Installer", 0x10);
+        }
+    }
+
+    static void ProtectNativeImports(System.Reflection.Assembly assembly)
+    {
+        if (assembly.IsDynamic)
+            return;
+        try
+        {
+            NativeLibrary.SetDllImportResolver(assembly, (name, _, _) =>
+            {
+                var file = name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? name : name + ".dll";
+                if (file.IndexOfAny(['\\', '/']) >= 0)
+                    return IntPtr.Zero;
+                var system = Path.Combine(Environment.SystemDirectory, file);
+                return File.Exists(system) && NativeLibrary.TryLoad(system, out var handle) ? handle : IntPtr.Zero;
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            // A resolver is already set for this assembly.
+        }
+        catch (ArgumentException)
+        {
         }
     }
 
