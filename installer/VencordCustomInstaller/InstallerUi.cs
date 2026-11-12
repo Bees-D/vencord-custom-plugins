@@ -23,7 +23,7 @@ sealed class InstallerUi
     {
         Log.Info("Custom Vencord Installer ready.");
         if (!isAdmin)
-            Log.Warn("Not running as administrator. Installing build tools may ask for permission.");
+            Log.Info("Running without admin rights. Windows will ask for permission only if Node.js or Git need installing.");
         RefreshClients();
     }
 
@@ -151,7 +151,7 @@ sealed class InstallerUi
 
         ImGui.SameLine();
         ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMax().X - 190);
-        Colored(isAdmin ? Theme.Green : Theme.Yellow, isAdmin ? "Running as administrator" : "Not running as administrator");
+        Colored(Theme.Green, isAdmin ? "Running as administrator" : "Running as your user (admin not needed)");
         Colored(Theme.Muted, "Builds the newest Vencord from source with your custom plugins and installs it.");
         ImGui.Spacing();
     }

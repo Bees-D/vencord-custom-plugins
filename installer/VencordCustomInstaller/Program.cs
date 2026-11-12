@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Silk.NET.Input;
 using Silk.NET.Input.Glfw;
 using Silk.NET.Maths;
@@ -12,10 +13,42 @@ namespace VencordCustomInstaller;
 
 static class Program
 {
+    [DllImport("kernel32.dll")] static extern bool SetDefaultDllDirectories(uint flags);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr AddDllDirectory(string path);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
+
     [STAThread]
     static void Main(string[] args)
     {
+        // Only load DLLs from System32 and folders we add. Without this, a stray DLL next to the exe
+        // (for example a winhttp.dll in Downloads) gets loaded into the installer and can crash it.
+        SetDefaultDllDirectories(0x00000800 | 0x00000400); // LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS
+        foreach (var dir in (AppContext.GetData("NATIVE_DLL_SEARCH_DIRECTORIES") as string ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+            if (Directory.Exists(dir))
+                AddDllDirectory(dir);
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Crash: " + e.ExceptionObject);
+        try
+        {
+            Run(args);
+        }
+        catch (Exception error)
+        {
+            Log.Error("Could not start: " + error);
+            var graphics = error.ToString().Contains("GLFW", StringComparison.OrdinalIgnoreCase) || error.ToString().Contains("OpenGL", StringComparison.OrdinalIgnoreCase);
+            MessageBoxW(IntPtr.Zero,
+                (graphics
+                    ? "The installer window needs OpenGL 3.3. Update your graphics driver (or install one, if Windows is using \"Microsoft Basic Display Adapter\") and try again.\n\n"
+                    : "The installer could not start.\n\n")
+                + error.Message + "\n\nDetails were saved to:\n" + Paths.LogFile,
+                "Custom Vencord Installer", 0x10);
+        }
+    }
+
+    static void Run(string[] args)
+    {
         // --screenshot <file.png> renders a few frames, saves them, and exits (used to check the layout without clicking).
+        Tools.ForcePortable = args.Contains("--force-portable");
         if (args.Contains("--build-only"))
         {
             // Headless build with no client install; used to test the pipeline (set VCI_ROOT to keep it away from the real install).
