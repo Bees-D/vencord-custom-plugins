@@ -1,14 +1,35 @@
 # Windows installer
 
-Run `Install-CustomVencord.cmd`. It checks for Git and Node.js 22 or newer, and uses WinGet to install missing build prerequisites. It then clones the latest Vencord source and these plugins from GitHub, builds them together, and installs the custom build.
+`CustomVencordInstaller.exe` is a single-file app (no .NET install needed). It asks for administrator rights when it starts.
 
-The installer:
+## What it does
 
-- Updates official Discord Stable, PTB, and Canary installs that it finds. Existing Vencord installs are replaced by the custom build.
-- Points Vesktop at the custom Vencord build, backing up its `state.json` before changing it.
-- Lets you enter additional compatible client folders. The folder should contain `resources\app.asar` directly or inside an `app-*` folder.
-- Verifies the downloaded official Vencord Installer CLI with the SHA-256 digest from its latest GitHub release.
+When you press **Download, build and install**:
 
-Close Discord, Vesktop, and any additional clients before installation. Restart each client afterwards. Full Vencord source is downloaded and compiled during installation, so the process needs an internet connection and several gigabytes of temporary disk space.
+1. Checks for Git, Node.js 22 or newer, and Corepack/pnpm. Missing tools are installed with WinGet.
+2. Downloads the newest Vencord source and the plugins from this repository. Later runs only download what changed.
+3. Adds every plugin in `plugins/` to Vencord and builds it on your PC.
+4. Copies the build to `%LOCALAPPDATA%\VencordCustomPlugins\dist`.
+5. Asks you to close Discord and Vesktop if they are open, or closes them for you.
+6. Installs into each ticked client:
+   - Discord Stable, PTB, and Canary use the official Vencord Installer CLI. The installer checks the CLI's SHA-256 against the official GitHub release. An existing Vencord install is replaced.
+   - Vesktop is pointed at the custom build. Its `state.json` is backed up first.
+   - Any other Discord-based client folder you add works too.
 
-Vencord's own client-mod terms and limitations still apply.
+## Updates
+
+The installer checks GitHub for new Vencord and plugin commits when it opens and every 30 minutes while it is open. When something changed, the status card lists what is new and the main button becomes **Update now**.
+
+Discord sometimes removes Vencord when it updates itself. The client then shows **needs repair**. Press **Repair** to reinstall the existing build without rebuilding.
+
+## Files
+
+Everything lives in `%LOCALAPPDATA%\VencordCustomPlugins`: the source checkouts, the build, the log (`installer.log`), and the installer settings.
+
+## Building the installer
+
+```powershell
+.\installer\Build-CustomVencordInstaller.ps1
+```
+
+This needs the .NET 8 SDK and writes `installer\release\CustomVencordInstaller.exe`. The old `Install-CustomVencord.cmd` script still works as a fallback.

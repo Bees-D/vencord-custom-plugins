@@ -222,7 +222,7 @@ try {
         throw "Could not download the custom plugin repository."
     }
 
-    foreach ($pluginName in @("everythingMoves", "themeStudio")) {
+    foreach ($pluginName in @("everythingMoves", "themeStudio", "longFriendNicknames")) {
         $sourcePlugin = Join-Path $pluginRoot "plugins\$pluginName"
         $destinationPlugin = Join-Path $upstreamRoot "src\userplugins\$pluginName"
         if (-not (Test-Path -LiteralPath $sourcePlugin)) {
@@ -259,7 +259,7 @@ try {
         throw "The Vencord build did not produce the desktop renderer."
     }
     $rendererText = [System.IO.File]::ReadAllText($builtDesktopRenderer)
-    foreach ($pluginName in @("EverythingMoves", "ThemeStudio")) {
+    foreach ($pluginName in @("EverythingMoves", "ThemeStudio", "LongFriendNicknames")) {
         if (-not $rendererText.Contains($pluginName)) {
             throw "The build output does not contain $pluginName."
         }

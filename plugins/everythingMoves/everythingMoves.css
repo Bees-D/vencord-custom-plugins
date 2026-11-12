@@ -1,0 +1,131 @@
+.vc-everythingMoves-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.vc-everythingMoves-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--background-secondary, #2b2d31);
+    border: 1px solid var(--border-subtle, #3f4147);
+    border-radius: 10px;
+}
+
+.vc-everythingMoves-sectionTitle {
+    margin: 0;
+    color: var(--header-primary, #f2f3f5);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.vc-everythingMoves-presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+}
+
+.vc-everythingMoves-preset {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    color: var(--text-default, #dbdee1);
+    background: var(--background-tertiary, #1e1f22);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.vc-everythingMoves-preset:hover {
+    border-color: var(--background-modifier-accent, #4e5058);
+    transform: translateY(-1px);
+}
+
+.vc-everythingMoves-preset strong {
+    color: var(--header-primary, #f2f3f5);
+    font-size: 15px;
+}
+
+.vc-everythingMoves-preset span {
+    color: var(--text-muted, #949ba4);
+    font-size: 12px;
+}
+
+.vc-everythingMoves-preset-selected {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 15%, var(--background-tertiary, #1e1f22));
+}
+
+.vc-everythingMoves-range {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-default, #dbdee1);
+}
+
+.vc-everythingMoves-rangeLabel {
+    display: flex;
+    justify-content: space-between;
+}
+
+.vc-everythingMoves-range input,
+.vc-everythingMoves-section input[type="range"] {
+    width: 100%;
+    accent-color: var(--brand-500, #5865f2);
+}
+
+.vc-everythingMoves-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -4px;
+    color: var(--text-muted, #949ba4);
+    font-size: 12px;
+}
+
+.vc-everythingMoves-selects {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.vc-everythingMoves-selects label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-default, #dbdee1);
+}
+
+.vc-everythingMoves-selects select {
+    padding: 8px;
+    color: var(--text-default, #dbdee1);
+    background: var(--background-tertiary, #1e1f22);
+    border: 1px solid var(--border-subtle, #3f4147);
+    border-radius: 6px;
+}
+
+.vc-everythingMoves-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    color: #f0b232;
+    background: rgb(240 178 50 / 10%);
+    border: 1px solid rgb(240 178 50 / 40%);
+    border-radius: 8px;
+}
+
+.vc-everythingMoves-footer,
+.vc-everythingMoves-openPage {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}

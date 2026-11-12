@@ -1,1 +1,4 @@
 CustomVencordPluginsInstaller.zip
+installer/VencordCustomInstaller/bin/
+installer/VencordCustomInstaller/obj/
+installer/release/

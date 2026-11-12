@@ -1,16 +1,17 @@
 # Vencord Custom Plugins
 
-This repository contains two Vencord plugins and a Windows installer that fetches the current Vencord source, installs the plugins, and builds them together.
+This repository contains three Vencord plugins and a Windows installer that downloads the newest Vencord source, adds the plugins, builds everything on your PC, and installs it.
 
 ## Plugins
 
-- **EverythingMoves** — per-category shrink and fade transitions for channel/server/page navigation, settings, menus, and modals.
-- **ThemeStudio** — a dedicated User Settings page and draggable editor for element colors, opacity, fonts, and font sizes. Saved rules apply at startup after Vencord themes and QuickCSS.
+- **EverythingMoves**: animated transitions for channel, server, and page navigation, settings, menus, and dialogs. It has presets, a speed slider, and a live preview on its own **Everything Moves** settings page.
+- **ThemeStudio**: click any part of Discord and change its colors, font, size, corners, or hide it. It has its own **Theme Studio** settings page and a floating editor. Saved styles win over Vencord themes and QuickCSS.
+- **LongFriendNicknames**: right-click a user and pick **Set Nickname (Discord + Local)**. The Discord box saves to your account and uses Discord's character limit. The local box can be any length and is only shown in this client. It can also wrap long names instead of cutting them off.
 
-The plugins are enabled by default. Vencord's plugin details include a favorite star for both local plugins through the installer patch.
+All plugins are enabled by default.
 
 ## Install on Windows
 
-Extract the installer ZIP and run `Install-CustomVencord.cmd`. It checks for the Vencord build prerequisites, installs missing prerequisites with WinGet, downloads both plugins from this repository, builds the newest Vencord source, and installs it into detected Discord Stable/PTB/Canary and Vesktop clients. It also supports additional compatible client folders.
+Run `CustomVencordInstaller.exe` from the [releases](installer/README.md) and press **Download, build and install**. When Vencord or the plugins change, the installer shows **Update now**. See [installer/README.md](installer/README.md) for details.
 
-See [installer/README.md](installer/README.md) for details. Plugin source is under `plugins/` and licensed under GPL-3.0-or-later.
+Plugin source is under `plugins/` and licensed under GPL-3.0-or-later.

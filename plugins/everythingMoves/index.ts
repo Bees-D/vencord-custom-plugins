@@ -4,81 +4,199 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
+import { PaintbrushIcon } from "@components/Icons";
+import SettingsPlugin from "@plugins/_core/settings";
+import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 
-const PLUGIN_NAME = "EverythingMoves";
-const EASING = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+import { OpenPageSetting, SafeEverythingMovesPage } from "./page";
 
-const settings = definePluginSettings({
+const PLUGIN_NAME = "EverythingMoves";
+
+type MotionStyle = "scale" | "zoom" | "slideUp" | "slideSide" | "fade";
+type EasingName = "smooth" | "snappy" | "bouncy" | "easeInOut" | "linear";
+type PresetName = "subtle" | "smooth" | "snappy" | "bouncy" | "slide" | "fade" | "dramatic" | "custom";
+
+interface MotionConfig {
+    style: MotionStyle;
+    easing: EasingName;
+    scaleTarget: number;
+    scaleDuration: number;
+    fadeInDuration: number;
+    fadeOutDuration: number;
+    fadeBlend: number;
+}
+
+const easings: Record<EasingName, string> = {
+    smooth: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+    snappy: "cubic-bezier(0.2, 0.9, 0.1, 1)",
+    bouncy: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    easeInOut: "cubic-bezier(0.65, 0, 0.35, 1)",
+    linear: "linear"
+};
+
+const presets: Record<Exclude<PresetName, "custom">, MotionConfig> = {
+    subtle: { style: "scale", easing: "smooth", scaleTarget: 97, scaleDuration: 250, fadeInDuration: 200, fadeOutDuration: 150, fadeBlend: 50 },
+    smooth: { style: "scale", easing: "smooth", scaleTarget: 90, scaleDuration: 600, fadeInDuration: 500, fadeOutDuration: 400, fadeBlend: 0 },
+    snappy: { style: "scale", easing: "snappy", scaleTarget: 95, scaleDuration: 180, fadeInDuration: 150, fadeOutDuration: 120, fadeBlend: 50 },
+    bouncy: { style: "scale", easing: "bouncy", scaleTarget: 85, scaleDuration: 550, fadeInDuration: 300, fadeOutDuration: 250, fadeBlend: 50 },
+    slide: { style: "slideUp", easing: "smooth", scaleTarget: 90, scaleDuration: 350, fadeInDuration: 300, fadeOutDuration: 200, fadeBlend: 50 },
+    fade: { style: "fade", easing: "easeInOut", scaleTarget: 100, scaleDuration: 250, fadeInDuration: 250, fadeOutDuration: 200, fadeBlend: 100 },
+    dramatic: { style: "zoom", easing: "easeInOut", scaleTarget: 75, scaleDuration: 1000, fadeInDuration: 800, fadeOutDuration: 700, fadeBlend: 0 }
+};
+
+export const PAGE_KEY = "vencord_everything_moves";
+
+export const presetList: { value: PresetName; name: string; description: string; }[] = [
+    { value: "subtle", name: "Subtle", description: "Barely there, very quick" },
+    { value: "smooth", name: "Smooth", description: "Gentle shrink and fade" },
+    { value: "snappy", name: "Snappy", description: "Fast and crisp" },
+    { value: "bouncy", name: "Bouncy", description: "Springs into place" },
+    { value: "slide", name: "Slide", description: "Glides up into view" },
+    { value: "fade", name: "Fade", description: "Opacity only, no movement" },
+    { value: "dramatic", name: "Dramatic", description: "Big, slow zoom" },
+    { value: "custom", name: "Custom", description: "Fine-tune everything yourself" }
+];
+
+export const settings = definePluginSettings({
+    openPage: {
+        type: OptionType.COMPONENT,
+        component: OpenPageSetting
+    },
+    preset: {
+        hidden: true,
+        type: OptionType.SELECT,
+        description: "Pick a ready-made animation feel. Choose Custom to fine-tune every value yourself.",
+        options: [
+            { label: "Subtle - barely there, very quick", value: "subtle" },
+            { label: "Smooth - gentle shrink and fade", value: "smooth", default: true },
+            { label: "Snappy - fast and crisp", value: "snappy" },
+            { label: "Bouncy - springs into place", value: "bouncy" },
+            { label: "Slide - glides up into view", value: "slide" },
+            { label: "Fade - opacity only, no movement", value: "fade" },
+            { label: "Dramatic - big, slow zoom", value: "dramatic" },
+            { label: "Custom - use the sliders below", value: "custom" }
+        ]
+    },
+    speed: {
+        type: OptionType.SLIDER,
+        description: "Overall speed. 2 plays everything twice as fast, 0.5 at half speed.",
+        markers: [0.25, 0.5, 0.75, 1, 1.5, 2, 3],
+        default: 1,
+        stickToMarkers: true,
+        hidden: true
+    },
     channelNavigation: {
         type: OptionType.BOOLEAN,
         description: "Animate switching between channels and direct messages",
-        default: true
+        default: true,
+        hidden: true
     },
     serverNavigation: {
         type: OptionType.BOOLEAN,
         description: "Animate switching between servers",
-        default: true
+        default: true,
+        hidden: true
     },
     otherPages: {
         type: OptionType.BOOLEAN,
         description: "Animate navigation to other Discord pages",
-        default: true
+        default: true,
+        hidden: true
     },
     settingsPanels: {
         type: OptionType.BOOLEAN,
         description: "Animate opening, closing, and switching settings panels",
-        default: true
+        default: true,
+        hidden: true
     },
     menus: {
         type: OptionType.BOOLEAN,
         description: "Animate menus, context menus, and popouts opening and closing",
-        default: true
+        default: true,
+        hidden: true
+    },
+    growFromCursor: {
+        type: OptionType.BOOLEAN,
+        description: "Menus and popouts grow out of the spot you clicked instead of their center",
+        default: true,
+        hidden: true
     },
     modals: {
         type: OptionType.BOOLEAN,
         description: "Animate dialogs and modal windows opening and closing",
-        default: true
+        default: true,
+        hidden: true
+    },
+    style: {
+        type: OptionType.SELECT,
+        description: "Custom: how things move",
+        options: [
+            { label: "Shrink and grow", value: "scale", default: true },
+            { label: "Zoom through (incoming starts large)", value: "zoom" },
+            { label: "Slide up", value: "slideUp" },
+            { label: "Slide sideways", value: "slideSide" },
+            { label: "Fade only", value: "fade" }
+        ],
+        hidden: true
+    },
+    easing: {
+        type: OptionType.SELECT,
+        description: "Custom: speed curve",
+        options: [
+            { label: "Smooth", value: "smooth", default: true },
+            { label: "Snappy", value: "snappy" },
+            { label: "Bouncy (overshoots slightly)", value: "bouncy" },
+            { label: "Ease in and out", value: "easeInOut" },
+            { label: "Linear", value: "linear" }
+        ],
+        hidden: true
     },
     scaleTarget: {
         type: OptionType.SLIDER,
-        description: "Scale percentage reached before the outgoing view fades; the incoming view grows from this size",
+        description: "Custom: movement amount. Lower = bigger shrink, zoom, or slide distance.",
         markers: [50, 60, 70, 80, 90, 95, 100],
         default: 90,
-        stickToMarkers: true
+        stickToMarkers: true,
+        hidden: true
     },
     scaleDuration: {
         type: OptionType.SLIDER,
-        description: "How long shrinking and enlarging take, in milliseconds (up to 10 seconds)",
-        markers: [0, 1000, 2500, 5000, 7500, 10000],
+        description: "Custom: how long the movement takes, in milliseconds",
+        markers: [0, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000],
         default: 600,
-        stickToMarkers: false
+        stickToMarkers: false,
+        hidden: true
     },
     fadeInDuration: {
         type: OptionType.SLIDER,
-        description: "How long incoming views take to fade in, in milliseconds (up to 10 seconds)",
-        markers: [0, 1000, 2500, 5000, 7500, 10000],
+        description: "Custom: how long incoming views take to fade in, in milliseconds",
+        markers: [0, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000],
         default: 500,
-        stickToMarkers: false
+        stickToMarkers: false,
+        hidden: true
     },
     fadeOutDuration: {
         type: OptionType.SLIDER,
-        description: "How long outgoing views take to fade out, in milliseconds (up to 10 seconds)",
-        markers: [0, 1000, 2500, 5000, 7500, 10000],
+        description: "Custom: how long outgoing views take to fade out, in milliseconds",
+        markers: [0, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000],
         default: 400,
-        stickToMarkers: false
+        stickToMarkers: false,
+        hidden: true
     },
     fadeBlend: {
         type: OptionType.SLIDER,
-        description: "How far through shrinking the fade-out starts: 0% starts after shrinking; 100% starts immediately",
+        description: "Custom: when the fade-out starts. 0% = after moving finishes, 100% = right away",
         markers: [0, 25, 50, 75, 100],
         default: 0,
-        stickToMarkers: true
+        stickToMarkers: true,
+        hidden: true
     },
     respectReducedMotion: {
         type: OptionType.BOOLEAN,
         description: "Disable animations when your system requests reduced motion",
-        default: true
+        default: true,
+        hidden: true
     }
 });
 
@@ -97,19 +215,30 @@ interface Snapshot {
     rect: DOMRect;
 }
 
+const settingsShell = '[class*="standardSidebarView"], [class*="settingsPage"]';
+const settingsPanel = '[class*="contentColumn"], [role="tabpanel"]';
+const menuStrict = '[role="menu"], [class*="contextMenu"]';
+const popout = '[class*="popout"]';
+// Class tokens starting with "layer" (Discord's popout layers), without matching words like "player".
+const layerAncestor = '[class^="layer"], [class*=" layer"]';
+const tooltip = '[role="tooltip"], [class*="tooltip"]';
+
+// Broad selectors used to find candidates; getKind narrows them down.
 const selectors: Record<AnimationKind, string> = {
-    settings: '[class*="standardSidebarView"], [class*="settingsPage"], [class*="contentColumn"], [role="tabpanel"]',
-    menu: '[role="menu"], [class*="contextMenu"], [class*="popout"]',
+    settings: settingsShell + ", " + settingsPanel,
+    menu: menuStrict + ", " + popout,
     modal: '[role="dialog"], [aria-modal="true"], [class*="modalRoot"]'
 };
 
 let observer: MutationObserver | undefined;
 let popStateListener: (() => void) | undefined;
+let pointerListener: ((event: PointerEvent) => void) | undefined;
 let originalPushState: History["pushState"] | undefined;
 let originalReplaceState: History["replaceState"] | undefined;
 let installedPushState: History["pushState"] | undefined;
 let installedReplaceState: History["replaceState"] | undefined;
 let lastHref = location.href;
+let lastPointer: { x: number; y: number; time: number; } | undefined;
 let overlayFrame = 0;
 
 const trackedOverlays = new Set<HTMLElement>();
@@ -119,11 +248,31 @@ const elementAnimations = new WeakMap<HTMLElement, Animation>();
 const activeAnimations = new Set<Animation>();
 const exitClones = new Set<HTMLElement>();
 
-function animationsAllowed(): boolean {
-    if (settings.store.respectReducedMotion && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
-        return false;
+export function motionConfig(): MotionConfig {
+    const store = settings.store;
+    const base: MotionConfig = store.preset === "custom" || !presets[store.preset as keyof typeof presets]
+        ? {
+            style: store.style as MotionStyle,
+            easing: store.easing as EasingName,
+            scaleTarget: store.scaleTarget,
+            scaleDuration: store.scaleDuration,
+            fadeInDuration: store.fadeInDuration,
+            fadeOutDuration: store.fadeOutDuration,
+            fadeBlend: store.fadeBlend
+        }
+        : presets[store.preset as keyof typeof presets];
+    const speed = store.speed > 0 ? store.speed : 1;
 
-    return true;
+    return {
+        ...base,
+        scaleDuration: Math.max(0, base.scaleDuration) / speed,
+        fadeInDuration: Math.max(0, base.fadeInDuration) / speed,
+        fadeOutDuration: Math.max(0, base.fadeOutDuration) / speed
+    };
+}
+
+export function animationsAllowed(): boolean {
+    return !(settings.store.respectReducedMotion && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 }
 
 function isKindEnabled(kind: AnimationKind): boolean {
@@ -161,11 +310,14 @@ function routeChange(fromHref: string, toHref: string): RouteKind | undefined {
     if (from.href === to.href)
         return;
 
-    if (from.guildId && to.guildId && from.guildId !== to.guildId)
-        return "server";
-
-    if (from.guildId && to.guildId && from.channelId !== to.channelId && (from.channelId || to.channelId))
+    if (from.guildId && to.guildId) {
+        if (from.guildId !== to.guildId)
+            return "server";
+        // Same channel with a message id (jump to message) or a guild redirecting to its default channel.
+        if (from.channelId === to.channelId || !from.channelId)
+            return;
         return "channel";
+    }
 
     if (from.pathname !== to.pathname)
         return "page";
@@ -189,14 +341,52 @@ function pageTarget(kind: RouteKind): HTMLElement | null {
     return null;
 }
 
-function makeSafeClone(source: HTMLElement): HTMLElement {
+export function makeSafeClone(source: HTMLElement): HTMLElement {
+    // Scroll positions are not cloned, so remember them and restore them on the copy.
+    // Off-screen list items become empty spacers of the same size, so long chats stay cheap to snapshot.
+    const marked: HTMLElement[] = [];
+    if (source.isConnected) {
+        for (const element of [source, ...source.querySelectorAll<HTMLElement>('[class*="scroller"], [class*="Scroller"]')]) {
+            if (element.scrollTop || element.scrollLeft) {
+                element.dataset.vcEmScroll = element.scrollTop + "," + element.scrollLeft;
+                marked.push(element);
+            }
+        }
+
+        const visible = source.getBoundingClientRect();
+        for (const item of source.querySelectorAll<HTMLElement>("li")) {
+            const rect = item.getBoundingClientRect();
+            if (rect.height && (rect.bottom < visible.top || rect.top > visible.bottom)) {
+                item.dataset.vcEmSpacer = String(rect.height);
+                marked.push(item);
+            }
+        }
+    }
+
     const clone = source.cloneNode(true) as HTMLElement;
+    marked.forEach(element => {
+        delete element.dataset.vcEmScroll;
+        delete element.dataset.vcEmSpacer;
+    });
+
+    clone.querySelectorAll<HTMLElement>("[data-vc-em-spacer]").forEach(item => {
+        const spacer = document.createElement("li");
+        spacer.className = item.className;
+        spacer.style.cssText = `box-sizing: border-box !important; height: ${item.dataset.vcEmSpacer}px !important; min-height: 0 !important; overflow: hidden !important;`;
+        item.replaceWith(spacer);
+    });
+
     clone.dataset.vcEverythingMovesClone = "true";
     clone.setAttribute("aria-hidden", "true");
     clone.inert = true;
     clone.querySelectorAll(
-        '[class*="channelTextArea"], [class*="membersWrap"], [class*="profilePanel"], [class*="userPanel"], [class*="panels"]'
+        'iframe, embed, object, [class*="channelTextArea"], [class*="membersWrap"], [class*="profilePanel"], [class*="userPanel"], [class*="panels"]'
     ).forEach(node => node.remove());
+    clone.querySelectorAll<HTMLMediaElement>("video, audio").forEach(media => {
+        media.removeAttribute("autoplay");
+        media.muted = true;
+        media.pause();
+    });
     clone.querySelectorAll("[id]").forEach(node => node.removeAttribute("id"));
     clone.removeAttribute("id");
     clone.querySelectorAll<HTMLElement>("button, input, select, textarea, a, [tabindex]").forEach(node => {
@@ -213,6 +403,18 @@ function makeSafeClone(source: HTMLElement): HTMLElement {
     return clone;
 }
 
+function restoreCloneScroll(clone: HTMLElement) {
+    for (const element of [clone, ...clone.querySelectorAll<HTMLElement>("[data-vc-em-scroll]")]) {
+        const saved = element.dataset.vcEmScroll;
+        if (!saved)
+            continue;
+        const [top, left] = saved.split(",").map(Number);
+        element.scrollTop = top;
+        element.scrollLeft = left;
+        delete element.dataset.vcEmScroll;
+    }
+}
+
 function snapshot(element: HTMLElement | null): Snapshot | undefined {
     if (!element)
         return;
@@ -224,28 +426,19 @@ function snapshot(element: HTMLElement | null): Snapshot | undefined {
     return { node: makeSafeClone(element), rect };
 }
 
-function preparePositionedClone(clone: HTMLElement, rect: DOMRect) {
-    clone.style.setProperty("left", `${rect.left}px`, "important");
-    clone.style.setProperty("top", `${rect.top}px`, "important");
-    clone.style.setProperty("width", `${rect.width}px`, "important");
-    clone.style.setProperty("height", `${rect.height}px`, "important");
-}
-
-function playAnimation(element: HTMLElement, frames: Keyframe[], time: number, removeWhenDone = false) {
+function playAnimation(element: HTMLElement, frames: Keyframe[], time: number, easing: string, removeWhenDone = false) {
     if (!element.isConnected)
         return;
-    if (!animationsAllowed()) {
-        if (removeWhenDone)
+    if (!animationsAllowed() || time <= 0) {
+        if (removeWhenDone) {
+            exitClones.delete(element);
             element.remove();
+        }
         return;
     }
 
     elementAnimations.get(element)?.cancel();
-    const animation = element.animate(frames, {
-        duration: time,
-        easing: EASING,
-        fill: "both"
-    });
+    const animation = element.animate(frames, { duration: time, easing, fill: "both" });
     elementAnimations.set(element, animation);
     activeAnimations.add(animation);
     animation.onfinish = () => {
@@ -262,6 +455,10 @@ function playAnimation(element: HTMLElement, frames: Keyframe[], time: number, r
         activeAnimations.delete(animation);
         if (elementAnimations.get(element) === animation)
             elementAnimations.delete(element);
+        if (removeWhenDone) {
+            exitClones.delete(element);
+            element.remove();
+        }
     };
 }
 
@@ -270,48 +467,72 @@ function addFrame(frames: Map<number, Keyframe>, offset: number, values: Keyfram
     frames.set(offset, Object.assign(current, values, { offset }));
 }
 
-function orderedFrames(frames: Map<number, Keyframe>): Keyframe[] {
-    return [...frames.values()].sort((a, b) => Number(a.offset) - Number(b.offset));
+function orderedFrames(frames: Map<number, Keyframe>, origin?: string): Keyframe[] {
+    const list = [...frames.values()].sort((a, b) => Number(a.offset) - Number(b.offset));
+    if (origin)
+        list.forEach(frame => frame.transformOrigin = origin);
+    return list;
 }
 
 function normalizedOffset(time: number, total: number): number {
     return total > 0 ? Math.max(0, Math.min(1, time / total)) : 1;
 }
 
-function animateIn(element: HTMLElement) {
-    const scaleTime = settings.store.scaleDuration;
-    const fadeTime = settings.store.fadeInDuration;
-    const total = Math.max(scaleTime, fadeTime);
-    const startScale = String(settings.store.scaleTarget / 100);
-    const frames = new Map<number, Keyframe>();
+const restingPose: Keyframe = { scale: "1", translate: "0 0" };
 
-    addFrame(frames, 0, { opacity: 0, scale: startScale });
-    addFrame(frames, normalizedOffset(fadeTime, total), { opacity: 1 });
-    addFrame(frames, normalizedOffset(scaleTime, total), { scale: "1" });
-    addFrame(frames, 1, { opacity: 1, scale: "1" });
+function movedPose(config: MotionConfig, direction: "in" | "out"): Keyframe {
+    const amount = config.scaleTarget / 100;
+    const distance = Math.round((1 - amount) * 300);
+    const sign = direction === "in" ? 1 : -1;
 
-    playAnimation(element, orderedFrames(frames), total);
+    switch (config.style) {
+        case "zoom": return { scale: String(2 - amount), translate: "0 0" };
+        case "slideUp": return { scale: "1", translate: `0 ${sign * distance}px` };
+        case "slideSide": return { scale: "1", translate: `${sign * distance}px 0` };
+        case "fade": return restingPose;
+        default: return { scale: String(amount), translate: "0 0" };
+    }
 }
 
-function animateOutClone(clone: HTMLElement, rect: DOMRect) {
-    preparePositionedClone(clone, rect);
-    document.body.appendChild(clone);
-    exitClones.add(clone);
-
-    const scaleTime = settings.store.scaleDuration;
-    const fadeTime = settings.store.fadeOutDuration;
-    const fadeStart = scaleTime * (1 - settings.store.fadeBlend / 100);
-    const total = Math.max(scaleTime, fadeStart + fadeTime);
-    const targetScale = String(settings.store.scaleTarget / 100);
+export function animateIn(element: HTMLElement, origin?: string) {
+    const config = motionConfig();
+    const scaleTime = config.scaleDuration;
+    const fadeTime = config.fadeInDuration;
+    const total = Math.max(scaleTime, fadeTime);
     const frames = new Map<number, Keyframe>();
 
-    addFrame(frames, 0, { opacity: 1, scale: "1" });
-    addFrame(frames, normalizedOffset(fadeStart, total), { opacity: 1 });
-    addFrame(frames, normalizedOffset(scaleTime, total), { scale: targetScale });
-    addFrame(frames, normalizedOffset(fadeStart + fadeTime, total), { opacity: 0 });
-    addFrame(frames, 1, { opacity: 0, scale: targetScale });
+    addFrame(frames, 0, { opacity: 0, ...movedPose(config, "in") });
+    addFrame(frames, normalizedOffset(fadeTime, total), { opacity: 1 });
+    addFrame(frames, normalizedOffset(scaleTime, total), restingPose);
+    addFrame(frames, 1, { opacity: 1, ...restingPose });
 
-    playAnimation(clone, orderedFrames(frames), total, true);
+    playAnimation(element, orderedFrames(frames, origin), total, easings[config.easing] ?? easings.smooth);
+}
+
+export function animateOutClone(clone: HTMLElement, rect: DOMRect) {
+    clone.style.setProperty("left", `${rect.left}px`, "important");
+    clone.style.setProperty("top", `${rect.top}px`, "important");
+    clone.style.setProperty("width", `${rect.width}px`, "important");
+    clone.style.setProperty("height", `${rect.height}px`, "important");
+    document.body.appendChild(clone);
+    restoreCloneScroll(clone);
+    exitClones.add(clone);
+
+    const config = motionConfig();
+    const scaleTime = config.scaleDuration;
+    const fadeTime = config.fadeOutDuration;
+    const fadeStart = scaleTime * (1 - config.fadeBlend / 100);
+    const total = Math.max(scaleTime, fadeStart + fadeTime);
+    const moved = movedPose(config, "out");
+    const frames = new Map<number, Keyframe>();
+
+    addFrame(frames, 0, { opacity: 1, ...restingPose });
+    addFrame(frames, normalizedOffset(fadeStart, total), { opacity: 1 });
+    addFrame(frames, normalizedOffset(scaleTime, total), moved);
+    addFrame(frames, normalizedOffset(fadeStart + fadeTime, total), { opacity: 0 });
+    addFrame(frames, 1, { opacity: 0, ...moved });
+
+    playAnimation(clone, orderedFrames(frames), total, easings[config.easing] ?? easings.smooth, true);
 }
 
 function addRouteTransition(kind: RouteKind, oldSnapshot?: Snapshot) {
@@ -328,31 +549,44 @@ function addRouteTransition(kind: RouteKind, oldSnapshot?: Snapshot) {
     }));
 }
 
-function selectorForKind(kind: AnimationKind): string {
-    return selectors[kind];
-}
-
 function getKind(element: Element): AnimationKind | undefined {
-    if (element.matches(selectors.settings))
+    if (element.matches(tooltip))
+        return;
+    // Tab panels and content columns appear all over Discord; only animate them inside settings.
+    if (element.matches(settingsShell) || (element.matches(settingsPanel) && element.parentElement?.closest(settingsShell)))
         return "settings";
-    if (element.matches(selectors.menu))
+    // Many inline elements have "popout" in a class name; real popouts are rendered inside a layer.
+    if (element.matches(menuStrict) || (element.matches(popout) && element.parentElement?.closest(layerAncestor)))
         return "menu";
     if (element.matches(selectors.modal))
         return "modal";
 }
 
 function hasSameKindAncestor(element: Element, kind: AnimationKind): boolean {
-    return Boolean(element.parentElement?.closest(selectorForKind(kind)));
+    return Boolean(element.parentElement?.closest(selectors[kind]));
+}
+
+function cursorOrigin(rect: DOMRect): string | undefined {
+    if (!settings.store.growFromCursor || !lastPointer || performance.now() - lastPointer.time > 1000)
+        return;
+
+    const x = Math.max(0, Math.min(rect.width, lastPointer.x - rect.left));
+    const y = Math.max(0, Math.min(rect.height, lastPointer.y - rect.top));
+    return `${x}px ${y}px`;
 }
 
 function registerOverlay(element: HTMLElement, kind: AnimationKind) {
     if (trackedOverlays.has(element) || !isKindEnabled(kind))
         return;
 
+    const rect = element.getBoundingClientRect();
     trackedOverlays.add(element);
     overlayKinds.set(element, kind);
-    overlayRects.set(element, element.getBoundingClientRect());
-    animateIn(element);
+    overlayRects.set(element, rect);
+    animateIn(element, kind === "menu" ? cursorOrigin(rect) : undefined);
+
+    if (!overlayFrame)
+        overlayFrame = requestAnimationFrame(trackOverlayRects);
 }
 
 function discoverOverlays(root: Element) {
@@ -363,16 +597,22 @@ function discoverOverlays(root: Element) {
     if (root instanceof HTMLElement && getKind(root))
         candidates.push(root);
 
-    for (const kind of ["settings", "menu", "modal"] as const) {
+    for (const kind of ["settings", "menu", "modal"] as const)
         root.querySelectorAll<HTMLElement>(selectors[kind]).forEach(element => candidates.push(element));
-    }
 
+    const registered: HTMLElement[] = [];
     for (const element of new Set(candidates)) {
         const kind = getKind(element);
-        // If the added node is itself a settings sub-panel, animate it even
-        // when the surrounding settings shell is already mounted.
-        if (kind && (element === root || !hasSameKindAncestor(element, kind)))
-            registerOverlay(element, kind);
+        if (!kind || (element !== root && hasSameKindAncestor(element, kind)))
+            continue;
+        // Avoid stacking an animation inside one that started in this same batch (e.g. a tab panel inside a new modal).
+        if (registered.some(parent => parent !== element && parent.contains(element)))
+            continue;
+
+        const wasTracked = trackedOverlays.has(element);
+        registerOverlay(element, kind);
+        if (!wasTracked && trackedOverlays.has(element))
+            registered.push(element);
     }
 }
 
@@ -384,14 +624,13 @@ function animateRemovedOverlay(element: HTMLElement) {
     if (!kind || !rect || !isKindEnabled(kind) || !animationsAllowed() || !rect.width || !rect.height)
         return;
 
-    const clone = makeSafeClone(element);
-    animateOutClone(clone, rect);
+    animateOutClone(makeSafeClone(element), rect);
 }
 
 function processMutations(records: MutationRecord[]) {
     for (const record of records) {
         record.removedNodes.forEach(node => {
-            if (!(node instanceof HTMLElement))
+            if (!(node instanceof HTMLElement) || node.dataset.vcEverythingMovesClone === "true")
                 return;
 
             for (const overlay of [...trackedOverlays]) {
@@ -407,6 +646,7 @@ function processMutations(records: MutationRecord[]) {
     }
 }
 
+// Removed nodes have no layout, so their last on-screen position is recorded every frame while they exist.
 function trackOverlayRects() {
     for (const element of [...trackedOverlays]) {
         if (!element.isConnected) {
@@ -419,65 +659,55 @@ function trackOverlayRects() {
             overlayRects.set(element, rect);
     }
 
-    overlayFrame = requestAnimationFrame(trackOverlayRects);
+    overlayFrame = trackedOverlays.size ? requestAnimationFrame(trackOverlayRects) : 0;
 }
 
-function animateRoute(fromHref: string, toHref: string, performNavigation: () => void) {
-    const kind = routeChange(fromHref, toHref);
-    const enabled = kind && isRouteEnabled(kind) && animationsAllowed();
-    const oldSnapshot = enabled && kind ? snapshot(pageTarget(kind)) : undefined;
+function prepareRoute(fromHref: string, toHref: string) {
+    try {
+        const kind = routeChange(fromHref, toHref);
+        if (!kind || !isRouteEnabled(kind) || !animationsAllowed())
+            return;
+        return { kind, oldSnapshot: snapshot(pageTarget(kind)) };
+    } catch {
+        return;
+    }
+}
 
-    performNavigation();
+function finishRoute(prepared: ReturnType<typeof prepareRoute>) {
     lastHref = location.href;
+    if (!prepared)
+        return;
+    try {
+        addRouteTransition(prepared.kind, prepared.oldSnapshot);
+    } catch { }
+}
 
-    if (enabled && kind)
-        addRouteTransition(kind, oldSnapshot);
+function wrapHistoryMethod(original: History["pushState"]): History["pushState"] {
+    return function (this: History, ...args: Parameters<History["pushState"]>) {
+        let prepared: ReturnType<typeof prepareRoute>;
+        try {
+            const toHref = args[2] == null ? location.href : new URL(String(args[2]), location.href).href;
+            prepared = prepareRoute(lastHref, toHref);
+        } catch { }
+
+        // Navigation must always happen, even if the animation code fails.
+        const result = original.apply(this, args);
+        finishRoute(prepared);
+        return result;
+    };
 }
 
 function installHistoryHooks() {
+    lastHref = location.href;
     originalPushState = history.pushState;
     originalReplaceState = history.replaceState;
-
-    installedPushState = function (this: History, ...args: Parameters<History["pushState"]>) {
-        const fromHref = lastHref;
-        const toHref = args[2] == null ? location.href : new URL(String(args[2]), location.href).href;
-        const kind = routeChange(fromHref, toHref);
-        const oldSnapshot = kind && isRouteEnabled(kind) && animationsAllowed()
-            ? snapshot(pageTarget(kind))
-            : undefined;
-        const result = originalPushState!.apply(this, args);
-        lastHref = location.href;
-
-        if (kind && isRouteEnabled(kind))
-            addRouteTransition(kind, oldSnapshot);
-
-        return result;
-    };
-
-    installedReplaceState = function (this: History, ...args: Parameters<History["replaceState"]>) {
-        const fromHref = lastHref;
-        const toHref = args[2] == null ? location.href : new URL(String(args[2]), location.href).href;
-        const kind = routeChange(fromHref, toHref);
-        const oldSnapshot = kind && isRouteEnabled(kind) && animationsAllowed()
-            ? snapshot(pageTarget(kind))
-            : undefined;
-        const result = originalReplaceState!.apply(this, args);
-        lastHref = location.href;
-
-        if (kind && isRouteEnabled(kind))
-            addRouteTransition(kind, oldSnapshot);
-
-        return result;
-    };
-
+    installedPushState = wrapHistoryMethod(originalPushState);
+    installedReplaceState = wrapHistoryMethod(originalReplaceState);
     history.pushState = installedPushState;
     history.replaceState = installedReplaceState;
 
-    popStateListener = () => {
-        const fromHref = lastHref;
-        const toHref = location.href;
-        animateRoute(fromHref, toHref, () => {});
-    };
+    // Capture phase runs before Discord's router re-renders, so the old page can still be snapshotted.
+    popStateListener = () => finishRoute(prepareRoute(lastHref, location.href));
     window.addEventListener("popstate", popStateListener, true);
 }
 
@@ -489,7 +719,7 @@ function cleanup() {
         cancelAnimationFrame(overlayFrame);
     overlayFrame = 0;
 
-    for (const animation of activeAnimations)
+    for (const animation of [...activeAnimations])
         animation.cancel();
     activeAnimations.clear();
 
@@ -502,6 +732,10 @@ function cleanup() {
         window.removeEventListener("popstate", popStateListener, true);
         popStateListener = undefined;
     }
+    if (pointerListener) {
+        document.removeEventListener("pointerdown", pointerListener, true);
+        pointerListener = undefined;
+    }
 
     if (originalPushState && history.pushState === installedPushState)
         history.pushState = originalPushState;
@@ -511,26 +745,37 @@ function cleanup() {
     originalReplaceState = undefined;
     installedPushState = undefined;
     installedReplaceState = undefined;
-
 }
 
 export default definePlugin({
     name: PLUGIN_NAME,
-    description: "Adds shrink, fade, and grow transitions to Discord navigation, menus, and dialogs",
+    description: "Adds shrink, fade, slide, and zoom transitions to Discord navigation, menus, and dialogs",
     authors: [],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
     settings,
 
     start() {
+        SettingsPlugin.customEntries.push({
+            key: PAGE_KEY,
+            title: "Everything Moves",
+            Component: SafeEverythingMovesPage,
+            Icon: PaintbrushIcon
+        });
         installHistoryHooks();
+
+        pointerListener = event => {
+            lastPointer = { x: event.clientX, y: event.clientY, time: performance.now() };
+        };
+        document.addEventListener("pointerdown", pointerListener, { capture: true, passive: true });
 
         observer = new MutationObserver(processMutations);
         if (document.body)
             observer.observe(document.body, { childList: true, subtree: true });
-
-        overlayFrame = requestAnimationFrame(trackOverlayRects);
     },
 
-    stop: cleanup
+    stop() {
+        cleanup();
+        removeFromArray(SettingsPlugin.customEntries, entry => entry.key === PAGE_KEY);
+    }
 });

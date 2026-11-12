@@ -1,23 +1,18 @@
 # Everything Moves
 
-Adds a slow shrink-and-fade exit and fade-and-grow entrance to Discord navigation and overlays.
+Adds transitions to Discord navigation, menus, settings, and dialogs.
 
 ## Controls
 
-Each category has its own toggle in **User Settings → Vencord → Plugins → EverythingMoves**:
+Open **User Settings → Everything Moves** (in the Vencord section of the settings sidebar). The plugin's settings button in the Plugins list links there too.
 
-- Channel and DM navigation
-- Server navigation
-- Other page navigation
-- Settings panels
-- Menus, context menus, and popouts
-- Dialogs and modals
-- Shrink/enlarge scale and duration
-- Separate fade-in and fade-out durations
-- Shrink/fade blend, controlling when fade-out begins during shrinking
-- Respect for the system reduced-motion preference
-
-Scale, fade-in, and fade-out sliders each reach 10 seconds. The shrink/fade blend ranges from 0% (fade starts after shrinking) to 100% (fade starts as shrinking begins).
+- **Preset**: Subtle, Smooth (default), Snappy, Bouncy, Slide, Fade, or Dramatic. Choose **Custom** to show the detailed controls.
+- **Speed**: one slider that speeds up or slows down every preset (0.25× to 3×).
+- **Play preview**: try the current settings without leaving the settings page.
+- Toggles for channel/DM navigation, server navigation, other pages, settings panels, menus and popouts, and dialogs.
+- **Grow from cursor**: menus and popouts grow out of the spot you clicked.
+- Custom only: movement style (shrink, zoom, slide up, slide sideways, fade), speed curve, movement amount, movement duration, fade-in and fade-out durations, and when the fade-out starts.
+- Respect for the system reduced-motion preference.
 
 ## Install
 
@@ -25,6 +20,4 @@ This is a Vencord **user plugin**. Copy the `everythingMoves` folder into your V
 
 The plugin uses Discord's current page routes and overlay DOM to detect transitions. Discord UI updates can change those DOM hooks, so a future Discord redesign may require selector updates.
 
-Navigation transitions animate the central message or page area. The message composer and persistent side panels are kept out of the outgoing snapshot so the composer updates to the newly selected DM immediately.
-
-EverythingMoves is enabled by default and can be favorited with the star in its Vencord plugin details.
+Navigation transitions animate the central message or page area. The outgoing snapshot keeps its scroll position, leaves out the message composer and side panels, and drops embedded players so nothing reloads or plays sound. Jumping to a message in the same channel does not trigger a transition.
